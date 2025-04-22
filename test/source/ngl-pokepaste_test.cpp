@@ -1,6 +1,8 @@
 
 #include <cassert>
 #include <cstring>
+#include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <optional>
 #include <source_location>
@@ -18,8 +20,10 @@ static bool verbose = false;
     }                                                             \
   } else {                                                        \
     std::cout << "Test failure at line "                          \
-              << std::source_location::current().line() << "\n"   \
-              << lhs << " != " << rhs << "\n";                    \
+              << std::source_location::current().line() << "\n";  \
+    if (verbose) {                                                \
+      std::cout << lhs << " != " << rhs << "\n";                  \
+    }                                                             \
   }
 
 std::ostream &operator<<(std::ostream &os, [[maybe_unused]] const std::nullopt_t &data) {
@@ -412,14 +416,14 @@ auto main(int argc, const char **argv) -> int {
     {
       const auto nature_value = std::string{"dummy nature"};
       const auto nature       = ngl::pokepaste::detail::decode_nature_line(
-        "Nature: " + nature_value
+        nature_value + " Nature"
       );
       assert((nature == nature_value));
     }
 
     {
       const auto nature_value    = std::string{" trimmable dummy nature "};
-      const auto nature_result   = ngl::pokepaste::detail::decode_nature_line("Nature:" + nature_value);
+      const auto nature_result   = ngl::pokepaste::detail::decode_nature_line(nature_value + " Nature");
       const auto nature_expected = ngl::util::trim(nature_value);
       assert((nature_result == nature_expected));
     }
@@ -543,7 +547,7 @@ auto main(int argc, const char **argv) -> int {
         "Gigantamax: Yes\n"
         "Tera Type: Type\n"
         "EVs: 6 HP / 5 Atk / 4 Def / 3 SpA / 2 SpD / 1 Spe\n"
-        "Nature: Nature\n"
+        "Nature Nature\n"
         "IVs: 1 HP / 2 Atk / 3 Def / 4 SpA / 5 SpD / 6 Spe\n"
         "- Attack 1\n"
         "- Attack 2\n"
@@ -599,7 +603,7 @@ auto main(int argc, const char **argv) -> int {
         "- Attack 1\n"
         "Tera Type: Type\n"
         "EVs: 6 HP / 5 Atk / 4 Def / 3 SpA / 2 SpD / 1 Spe\n"
-        "Nature: Nature\n"
+        "Nature Nature\n"
         "- Attack 2\n"
         "Dynamax Level: 4\n"
         "IVs: 1 HP / 2 Atk / 3 Def / 4 SpA / 5 SpD / 6 Spe\n"
@@ -641,7 +645,7 @@ auto main(int argc, const char **argv) -> int {
         "Gigantamax: Yes\n"
         "Tera Type: Type\n"
         "EVs: 6 HP / 5 Atk / 4 Def / 3 SpA / 2 SpD / 1 Spe\n"
-        "Nature: Nature\n"
+        "Nature Nature\n"
         "IVs: 1 HP / 2 Atk / 3 Def / 4 SpA / 5 SpD / 6 Spe\n"
         "- Attack 1\n"
         "- Attack 2\n"
@@ -666,6 +670,114 @@ auto main(int argc, const char **argv) -> int {
         assert(false);
       } catch ([[maybe_unused]] const std::runtime_error &e) {
       }
+    }
+
+    {
+      const auto paste_value =
+        "Nickname (Species) (M) @ Item\n"
+        "Ability: Ability\n"
+        "Level: 50\n"
+        "Shiny: Yes\n"
+        "Happiness: 73\n"
+        "Dynamax Level: 4\n"
+        "Gigantamax: Yes\n"
+        "Tera Type: Type\n"
+        "EVs: 6 HP / 5 Atk / 4 Def / 3 SpA / 2 SpD / 1 Spe\n"
+        "Nature Nature\n"
+        "IVs: 1 HP / 2 Atk / 3 Def / 4 SpA / 5 SpD / 6 Spe\n"
+        "- Attack 1\n"
+        "- Attack 2\n"
+        "- Attack 3\n"
+        "- Attack 4\n"
+        "\n"
+        "Nickname (Species) (M) @ Item\n"
+        "Ability: Ability\n"
+        "Level: 50\n"
+        "Shiny: Yes\n"
+        "Happiness: 73\n"
+        "Dynamax Level: 4\n"
+        "Gigantamax: Yes\n"
+        "Tera Type: Type\n"
+        "EVs: 6 HP / 5 Atk / 4 Def / 3 SpA / 2 SpD / 1 Spe\n"
+        "Nature Nature\n"
+        "IVs: 1 HP / 2 Atk / 3 Def / 4 SpA / 5 SpD / 6 Spe\n"
+        "- Attack 1\n"
+        "- Attack 2\n"
+        "- Attack 3\n"
+        "- Attack 4\n";
+
+      const auto paste_result   = ngl::pokepaste::decode_pokepaste(paste_value);
+      const auto paste_expected = ngl::pokepaste::PokePaste{
+        ngl::pokepaste::Pokemon{
+          "Nickname",
+          "Species",
+          ngl::pokepaste::Gender::M,
+          "Item",
+          "Ability",
+          std::size_t{50},
+          true,
+          std::size_t{73},
+          std::size_t{4},
+          true,
+          "Type",
+          ngl::pokepaste::Pokemon::Stats{6, 5, 4, 3, 2, 1},
+          "Nature",
+          ngl::pokepaste::Pokemon::Stats{1, 2, 3, 4, 5, 6},
+          std::vector{
+            std::string{"Attack 1"},
+            std::string{"Attack 2"},
+            std::string{"Attack 3"},
+            std::string{"Attack 4"}
+          }
+        },
+        ngl::pokepaste::Pokemon{
+          "Nickname",
+          "Species",
+          ngl::pokepaste::Gender::M,
+          "Item",
+          "Ability",
+          std::size_t{50},
+          true,
+          std::size_t{73},
+          std::size_t{4},
+          true,
+          "Type",
+          ngl::pokepaste::Pokemon::Stats{6, 5, 4, 3, 2, 1},
+          "Nature",
+          ngl::pokepaste::Pokemon::Stats{1, 2, 3, 4, 5, 6},
+          std::vector{
+            std::string{"Attack 1"},
+            std::string{"Attack 2"},
+            std::string{"Attack 3"},
+            std::string{"Attack 4"}
+          }
+        }
+      };
+
+      CHECK_EQ(paste_result, paste_expected);
+    }
+  }
+
+  // "Integration" tests
+  // Test whether the files in test/resources can be reconstructed end-to-end
+  // Each paste file name corresponds to the url it was obtained from on https://pokepast.es/
+  // The pastes are sourced from Smogon's old gens sample team threads and from the VGC pastes twitter account
+  {
+    using recursive_directory_iterator = std::filesystem::recursive_directory_iterator;
+    for (const auto &paste_file : recursive_directory_iterator("resources")) {
+      std::ifstream fs;
+      fs.open(paste_file);
+      std::string content, temp;
+      while (std::getline(fs, temp)) {
+        content.append(ngl::util::trim(temp));
+        content.append("\n");
+      }
+      content = ngl::util::trim(content);
+
+      const auto paste         = ngl::pokepaste::decode_pokepaste(content);
+      const auto paste_encoded = ngl::pokepaste::encode_pokepaste(paste);
+
+      CHECK_EQ(content, paste_encoded);
     }
   }
 }

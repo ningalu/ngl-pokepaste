@@ -532,11 +532,12 @@ struct SpeciesLineInfo {
 }
 
 [[nodiscard]] inline std::string encode_nature_line(const std::string &nature) {
-  return encode_string_line(nature, "Nature:");
+  return std::format("{} Nature", nature);
 }
 
 [[nodiscard]] inline std::string decode_nature_line(const std::string &line) {
-  const auto value = decode_string_line(line, "Nature:");
+  const auto upto  = line.rfind("Nature");
+  const auto value = util::trim(line.substr(0, upto));
   if (value.size() == 0) {
     throw std::runtime_error{"Pokemon Nature line must contain a value"};
   }
@@ -613,7 +614,8 @@ struct SpeciesLineInfo {
 
 [[nodiscard]] inline Pokemon decode_pokemon(const std::string &data) {
   Pokemon out;
-  auto parts = util::split(data, "\n");
+  const auto fixed_newlines = util::join(util::split(data, "\r\n"), "\n");
+  auto parts                = util::split(util::trim(data), "\n");
   if (util::trim(parts.back()).size() == 0) {
     parts.pop_back();
   }
@@ -628,7 +630,8 @@ struct SpeciesLineInfo {
 
   std::unordered_set<std::string> found;
   const auto body = std::span{parts}.subspan(1, parts.size() - 1);
-  for (const auto &line : body) {
+  for (const auto &raw_line : body) {
+    const auto line = util::trim(raw_line);
     std::optional<std::string> key;
     if (util::starts_with(line, "Ability:")) {
       key         = "Ability";
@@ -654,7 +657,7 @@ struct SpeciesLineInfo {
     } else if (util::starts_with(line, "EVs:")) {
       key     = "EVs";
       out.evs = detail::decode_evs_line(line);
-    } else if (util::starts_with(line, "Nature:")) {
+    } else if (util::ends_with(line, "Nature")) {
       key        = "Nature";
       out.nature = detail::decode_nature_line(line);
     } else if (util::starts_with(line, "IVs:")) {
@@ -676,6 +679,25 @@ struct SpeciesLineInfo {
 
   if (!found.contains("Ability")) {
     throw std::runtime_error{"Pokemon requires Ability data"};
+  }
+
+  return out;
+}
+
+[[nodiscard]] std::string encode_pokepaste(const PokePaste &paste) {
+  std::string out;
+  for (const auto &pokemon : paste) {
+    out.append(std::format("{}\n\n", util::trim(encode_pokemon(pokemon))));
+  }
+  return util::trim(out);
+}
+
+[[nodiscard]] PokePaste decode_pokepaste(const std::string &paste) {
+  PokePaste out;
+  const auto fixed_newlines = util::join(util::split(paste, "\r\n"), "\n");
+  const auto team           = util::split(fixed_newlines, "\n\n");
+  for (const auto &pokemon : team) {
+    out.push_back(decode_pokemon(util::trim(pokemon)));
   }
 
   return out;
@@ -738,11 +760,24 @@ struct SpeciesLineInfo {
     parts.push_back(std::format("\tMove {}: \"{}\"", i, pokemon.moves[i]));
   }
   parts.push_back("}");
-  return util::join(parts, "\n");
+  return util::trim(util::join(parts, "\n"));
 }
 
 [[nodiscard]] inline std::string str(const pokepaste::Pokemon &pokemon) {
   return pokepaste::encode_pokemon(pokemon);
+}
+
+[[nodiscard]] inline std::string repr(const pokepaste::PokePaste &paste) {
+  std::vector<std::string> out;
+  for (const auto &pokemon : paste) {
+    out.push_back(util::trim(repr(pokemon)));
+  }
+  const auto body = util::join(out, ",\n");
+  return "ngl::pokepaste::PokePaste {\n" + body + "\n}";
+}
+
+[[nodiscard]] inline std::string str(const pokepaste::PokePaste &paste) {
+  return encode_pokepaste(paste);
 }
 
 } // namespace ngl
@@ -753,6 +788,11 @@ std::ostream &operator<<(std::ostream &os, const ngl::pokepaste::detail::Species
 }
 
 std::ostream &operator<<(std::ostream &os, const ngl::pokepaste::Pokemon &data) {
+  os << ngl::repr(data);
+  return os;
+}
+
+std::ostream &operator<<(std::ostream &os, const ngl::pokepaste::PokePaste &data) {
   os << ngl::repr(data);
   return os;
 }
