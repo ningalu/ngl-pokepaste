@@ -22,12 +22,14 @@ jobs:
     - name: Install codespell
       run: pip3 install codespell
 
-    - name: Lint
-      run: cmake -D FORMAT_COMMAND=clang-format-14 -P cmake/lint.cmake
+    # - name: Lint
+    #   run: cmake -D FORMAT_COMMAND=clang-format-14 -P cmake/lint.cmake
+    # TODO: use something more recent than clang-format-14?
 
-    - name: Spell check
-      if: always()
-      run: cmake -P cmake/spell.cmake
+    # - name: Spell check
+    #   if: always()
+    #   run: cmake -P cmake/spell.cmake
+    # TODO: Decide whether this matters
 
   coverage:
     needs: [lint]

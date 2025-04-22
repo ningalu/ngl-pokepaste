@@ -20,9 +20,9 @@ namespace ngl {
 namespace util {
 
 template <typename T>
-[[nodiscard]] auto to_underlying(T e) {
+[[nodiscard]] auto to_underlying(T value) {
   static_assert(std::is_enum_v<T>);
-  return static_cast<std::underlying_type_t<T>>(e);
+  return static_cast<std::underlying_type_t<T>>(value);
 }
 
 [[nodiscard]] inline std::string join(const std::vector<std::string> &strs, const std::string &joiner = "") {
@@ -45,7 +45,7 @@ template <typename T>
   if (delimiter.size() == str.size()) {
     return {""};
   }
-  if (delimiter.size() == 0) {
+  if (delimiter.empty()) {
     return {str};
   }
   std::vector<std::string> out;
@@ -89,7 +89,7 @@ template <typename T>
 
 [[nodiscard]] inline std::string to_upper(const std::string &str) {
   auto out = str;
-  std::transform(out.begin(), out.end(), out.begin(), [](char c) {
+  std::ranges::transform(out.begin(), out.end(), out.begin(), [](char c) {
     return static_cast<char>(std::toupper(c));
   });
   return out;
@@ -97,7 +97,7 @@ template <typename T>
 
 [[nodiscard]] inline std::string to_lower(const std::string &str) {
   auto out = str;
-  std::transform(out.begin(), out.end(), out.begin(), [](char c) {
+  std::ranges::transform(out.begin(), out.end(), out.begin(), [](char c) {
     return static_cast<char>(std::tolower(c));
   });
   return out;
@@ -106,7 +106,7 @@ template <typename T>
 } // namespace util
 
 namespace pokepaste {
-enum class Gender {
+enum class Gender : uint8_t {
   M,
   F
 };
@@ -138,33 +138,38 @@ namespace pokepaste {
 
 struct Pokemon {
   struct Stats {
+    constexpr static std::size_t NUM_STATS = 6;
     std::size_t hp = 0, atk = 0, def = 0, spatk = 0, spdef = 0, spd = 0;
-    [[nodiscard]] inline bool operator==(const Stats &) const noexcept = default;
-    [[nodiscard]] inline std::strong_ordering operator<=>(
+    [[nodiscard]] bool operator==(const Stats &) const noexcept = default;
+    [[nodiscard]] std::strong_ordering operator<=>(
       const Stats &
     ) const noexcept = default;
   };
 
+  constexpr static std::size_t DEFAULT_HAPPINESS     = 255;
+  constexpr static std::size_t DEFAULT_DYNAMAX_LEVEL = 10;
+  constexpr static Stats DEFAULT_IVS                 = {31, 31, 31, 31, 31, 31};
+
   std::optional<std::string> nickname = std::nullopt;
-  std::string species                 = "";
-  std::optional<Gender> gender        = std::nullopt;
-  std::optional<std::string> item     = std::nullopt;
+  std::string species;
+  std::optional<Gender> gender    = std::nullopt;
+  std::optional<std::string> item = std::nullopt;
 
   // showdown import/export order
   std::string ability;
   std::optional<std::size_t> level;
   bool shiny                = false;
-  std::size_t happiness     = 255;
-  std::size_t dynamax_level = 10;
+  std::size_t happiness     = DEFAULT_HAPPINESS;
+  std::size_t dynamax_level = DEFAULT_DYNAMAX_LEVEL;
   bool gigantamax           = false;
   std::optional<std::string> tera_type;
   Stats evs;
   std::optional<std::string> nature;
-  Stats ivs = {31, 31, 31, 31, 31, 31};
+  Stats ivs = DEFAULT_IVS;
   std::vector<std::string> moves;
 
-  [[nodiscard]] inline bool operator==(const Pokemon &) const                  = default;
-  [[nodiscard]] inline std::strong_ordering operator<=>(const Pokemon &) const = default;
+  [[nodiscard]] bool operator==(const Pokemon &) const                  = default;
+  [[nodiscard]] std::strong_ordering operator<=>(const Pokemon &) const = default;
 };
 
 using PokePaste = std::vector<Pokemon>;
@@ -180,10 +185,10 @@ struct SpeciesLineInfo {
   std::string species;
   std::optional<Gender> gender;
   std::optional<std::string> item;
-  [[nodiscard]] inline bool operator==(
+  [[nodiscard]] bool operator==(
     const SpeciesLineInfo &
   ) const noexcept = default;
-  [[nodiscard]] inline std::strong_ordering operator<=>(
+  [[nodiscard]] std::strong_ordering operator<=>(
     const SpeciesLineInfo &
   ) const noexcept = default;
 };
@@ -216,13 +221,13 @@ struct SpeciesLineInfo {
   const auto str = util::to_lower(decode_string_line(line, prefix));
   if (str == "yes") {
     return true;
-  } else if (str == "no") {
-    return false;
-  } else {
-    throw std::runtime_error{
-      "Boolean data payload must be \"Yes\" or \"No\""
-    };
   }
+
+  if (str == "no") {
+    return false;
+  }
+
+  throw std::runtime_error{R"(Boolean data payload must be "Yes" or "No")"};
 }
 
 [[nodiscard]] inline std::string encode_stat_line(
@@ -257,21 +262,19 @@ struct SpeciesLineInfo {
 ) {
   const auto body    = decode_string_line(line, prefix);
   const auto entries = util::split(body, "/");
-  if (entries.size() == 0) {
+  if (entries.empty()) {
     throw std::runtime_error{
       "Pokemon stat line must contain at least one value"
     };
   }
-  if (entries.size() > 6) {
-    throw std::runtime_error{
-      "Pokemon may not specify more than 6 stat values"
-    };
+  if (entries.size() > Pokemon::Stats::NUM_STATS) {
+    throw std::runtime_error{"Pokemon may not specify more than 6 stat values"};
   }
 
   auto stats                                        = default_stats;
   const std::unordered_set<std::string> valid_stats = {"hp", "atk", "def", "spa", "spd", "spe"};
   std::unordered_map<std::string, std::size_t> stat_history;
-  for (const auto raw_entry : entries) {
+  for (const auto &raw_entry : entries) {
     const auto parts = util::split(util::trim(raw_entry), " ");
     if (parts.size() != 2) {
       throw std::runtime_error{"Stat entry data is malformed"};
@@ -288,9 +291,8 @@ struct SpeciesLineInfo {
       throw std::runtime_error{
         "Pokemon may not specify multiple values for a single stat"
       };
-    } else {
-      stat_history[stat] = static_cast<std::size_t>(value);
     }
+    stat_history[stat] = static_cast<std::size_t>(value);
   }
 
   for (const auto &[key, value] : stat_history) {
@@ -371,7 +373,7 @@ struct SpeciesLineInfo {
         // There is no item marker, so the final gender marker must be interpreted as the canonical
         // gender marker and the rest of the string must contain the species and maybe a nickname
         out.gender                  = util::contains(line, "(M)") ? Gender::M : Gender::F;
-        const auto gender_substring = out.gender.value() == Gender::M ? "(M)" : "(F)";
+        const auto gender_substring = std::string{out.gender.value() == Gender::M ? "(M)" : "(F)"};
         auto parts                  = util::split(line, gender_substring);
         parts.pop_back();
         species_and_nickname = util::join(parts, gender_substring);
@@ -430,15 +432,15 @@ struct SpeciesLineInfo {
 }
 
 [[nodiscard]] inline std::string decode_ability_line(const std::string &line) {
-  const auto value = decode_string_line(line, "Ability:");
-  if (value.size() == 0) {
+  auto value = decode_string_line(line, "Ability:");
+  if (value.empty()) {
     throw std::runtime_error{"Pokemon Ability line must contain a value"};
   }
   return value;
 }
 
 [[nodiscard]] inline std::string encode_level_line(std::size_t level) {
-  assert(level == static_cast<int>(level));
+  assert(level <= static_cast<std::size_t>(std::numeric_limits<int>::max()));
   return encode_number_line(static_cast<int>(level), "Level:");
 }
 
@@ -458,14 +460,13 @@ struct SpeciesLineInfo {
   try {
     return decode_bool_line(line, "Shiny:");
   } catch ([[maybe_unused]] const std::runtime_error &e) {
-    throw std::runtime_error{
-      "Pokemon Shiny line data must be \"Yes\" or \"No\""
-    };
+    throw std::runtime_error{R"(Pokemon Shiny line data must be "Yes" or "No")"};
   }
 }
 
-[[nodiscard]] inline std::string encode_happiness_line(bool happiness) {
-  return encode_bool_line(happiness, "Happiness:");
+[[nodiscard]] inline std::string encode_happiness_line(std::size_t happiness) {
+  assert(happiness <= static_cast<std::size_t>(std::numeric_limits<int>::max()));
+  return encode_number_line(static_cast<int>(happiness), "Happiness:");
 }
 
 [[nodiscard]] inline std::size_t decode_happiness_line(
@@ -479,7 +480,7 @@ struct SpeciesLineInfo {
 }
 
 [[nodiscard]] inline std::string encode_dynamax_level_line(std::size_t dynamax_level) {
-  assert(dynamax_level == static_cast<int>(dynamax_level));
+  assert(dynamax_level <= static_cast<std::size_t>(std::numeric_limits<int>::max()));
   return encode_number_line(static_cast<int>(dynamax_level), "Dynamax Level:");
 }
 
@@ -501,9 +502,7 @@ struct SpeciesLineInfo {
   try {
     return decode_bool_line(line, "Gigantamax:");
   } catch ([[maybe_unused]] const std::runtime_error &e) {
-    throw std::runtime_error{
-      "Pokemon Gigantamax line data must be \"Yes\" or \"No\""
-    };
+    throw std::runtime_error{R"(Pokemon Gigantamax line data must be "Yes" or "No")"};
   }
 }
 
@@ -514,8 +513,8 @@ struct SpeciesLineInfo {
 [[nodiscard]] inline std::string decode_tera_type_line(
   const std::string &line
 ) {
-  const auto value = decode_string_line(line, "Tera Type:");
-  if (value.size() == 0) {
+  auto value = decode_string_line(line, "Tera Type:");
+  if (value.empty()) {
     throw std::runtime_error{
       "Pokemon's Tera Type line must contain a value"
     };
@@ -536,20 +535,20 @@ struct SpeciesLineInfo {
 }
 
 [[nodiscard]] inline std::string decode_nature_line(const std::string &line) {
-  const auto upto  = line.rfind("Nature");
-  const auto value = util::trim(line.substr(0, upto));
-  if (value.size() == 0) {
+  auto upto  = line.rfind("Nature");
+  auto value = util::trim(line.substr(0, upto));
+  if (value.empty()) {
     throw std::runtime_error{"Pokemon Nature line must contain a value"};
   }
   return value;
 }
 
 [[nodiscard]] inline std::string encode_ivs_line(const Pokemon::Stats &ivs) {
-  return encode_stat_line(ivs, "IVs: ", Pokemon::Stats{31, 31, 31, 31, 31, 31});
+  return encode_stat_line(ivs, "IVs: ", Pokemon::DEFAULT_IVS);
 }
 
 [[nodiscard]] inline Pokemon::Stats decode_ivs_line(const std::string &line) {
-  return decode_stat_line(line, "IVs:", Pokemon::Stats{31, 31, 31, 31, 31, 31});
+  return decode_stat_line(line, "IVs:", Pokemon::DEFAULT_IVS);
 }
 
 [[nodiscard]] inline std::string encode_move_line(const std::string &move) {
@@ -557,8 +556,8 @@ struct SpeciesLineInfo {
 }
 
 [[nodiscard]] inline std::string decode_move_line(const std::string &line) {
-  const auto value = decode_string_line(line, "-");
-  if (value.size() == 0) {
+  auto value = decode_string_line(line, "-");
+  if (value.empty()) {
     throw std::runtime_error{"Pokemon Move line must contain a value"};
   }
   return value;
@@ -585,10 +584,10 @@ struct SpeciesLineInfo {
   if (pokemon.shiny) {
     parts.push_back(detail::encode_shiny_line(pokemon.shiny));
   }
-  if (pokemon.happiness != 255) {
+  if (pokemon.happiness != Pokemon::DEFAULT_HAPPINESS) {
     parts.push_back(detail::encode_happiness_line(pokemon.happiness));
   }
-  if (pokemon.dynamax_level != 10) {
+  if (pokemon.dynamax_level != Pokemon::DEFAULT_DYNAMAX_LEVEL) {
     parts.push_back(detail::encode_dynamax_level_line(pokemon.dynamax_level));
   }
   if (pokemon.gigantamax) {
@@ -603,7 +602,7 @@ struct SpeciesLineInfo {
   if (pokemon.nature.has_value()) {
     parts.push_back(detail::encode_nature_line(pokemon.nature.value()));
   }
-  if (pokemon.ivs != Pokemon::Stats{31, 31, 31, 31, 31, 31}) {
+  if (pokemon.ivs != Pokemon::DEFAULT_IVS) {
     parts.push_back(detail::encode_ivs_line(pokemon.ivs));
   }
   for (const auto &move : pokemon.moves) {
@@ -615,8 +614,8 @@ struct SpeciesLineInfo {
 [[nodiscard]] inline Pokemon decode_pokemon(const std::string &data) {
   Pokemon out;
   const auto fixed_newlines = util::join(util::split(data, "\r\n"), "\n");
-  auto parts                = util::split(util::trim(data), "\n");
-  if (util::trim(parts.back()).size() == 0) {
+  auto parts                = util::split(util::trim(fixed_newlines), "\n");
+  if (util::trim(parts.back()).empty()) {
     parts.pop_back();
   }
   if (parts.size() <= 1) {
@@ -671,9 +670,8 @@ struct SpeciesLineInfo {
     if (key.has_value()) {
       if (found.contains(key.value())) {
         throw std::runtime_error{"Duplicate line detected"};
-      } else {
-        found.insert(key.value());
       }
+      found.insert(key.value());
     }
   }
 
@@ -684,7 +682,7 @@ struct SpeciesLineInfo {
   return out;
 }
 
-[[nodiscard]] std::string encode_pokepaste(const PokePaste &paste) {
+[[nodiscard]] inline std::string encode_pokepaste(const PokePaste &paste) {
   std::string out;
   for (const auto &pokemon : paste) {
     out.append(std::format("{}\n\n", util::trim(encode_pokemon(pokemon))));
@@ -692,7 +690,7 @@ struct SpeciesLineInfo {
   return util::trim(out);
 }
 
-[[nodiscard]] PokePaste decode_pokepaste(const std::string &paste) {
+[[nodiscard]] inline PokePaste decode_pokepaste(const std::string &paste) {
   PokePaste out;
   const auto fixed_newlines = util::join(util::split(paste, "\r\n"), "\n");
   const auto team           = util::split(fixed_newlines, "\n\n");
@@ -741,7 +739,7 @@ struct SpeciesLineInfo {
 
 [[nodiscard]] inline std::string repr(const pokepaste::Pokemon &pokemon) {
   std::vector<std::string> parts;
-  parts.push_back("ngl::pokepaste::Pokemon {");
+  parts.emplace_back("ngl::pokepaste::Pokemon {");
   parts.push_back(std::format("\tNickname: \"{}\"", pokemon.nickname.has_value() ? pokemon.nickname.value() : std::string{"std::nullopt"}));
   parts.push_back(std::format("\tSpecies: \"{}\"", pokemon.species));
   parts.push_back(std::format("\tGender: {}", pokemon.gender.has_value() ? repr(pokemon.gender.value()) : std::string{"std::nullopt"}));
@@ -759,7 +757,7 @@ struct SpeciesLineInfo {
   for (std::size_t i = 0; i < pokemon.moves.size(); i++) {
     parts.push_back(std::format("\tMove {}: \"{}\"", i, pokemon.moves[i]));
   }
-  parts.push_back("}");
+  parts.emplace_back("}");
   return util::trim(util::join(parts, "\n"));
 }
 
@@ -782,17 +780,17 @@ struct SpeciesLineInfo {
 
 } // namespace ngl
 
-std::ostream &operator<<(std::ostream &os, const ngl::pokepaste::detail::SpeciesLineInfo &data) {
+inline std::ostream &operator<<(std::ostream &os, const ngl::pokepaste::detail::SpeciesLineInfo &data) {
   os << ngl::repr(data);
   return os;
 }
 
-std::ostream &operator<<(std::ostream &os, const ngl::pokepaste::Pokemon &data) {
+inline std::ostream &operator<<(std::ostream &os, const ngl::pokepaste::Pokemon &data) {
   os << ngl::repr(data);
   return os;
 }
 
-std::ostream &operator<<(std::ostream &os, const ngl::pokepaste::PokePaste &data) {
+inline std::ostream &operator<<(std::ostream &os, const ngl::pokepaste::PokePaste &data) {
   os << ngl::repr(data);
   return os;
 }

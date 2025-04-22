@@ -2,6 +2,16 @@
 # Enable ALL the things! Except not really
 # misc-non-private-member-variables-in-classes: the options don't do anything
 # modernize-use-nodiscard: too aggressive, attribute is situationally useful
+# modernize-use-trailing-return-type i dont like it
+# readability-identifier-naming i dont like it
+# cppcoreguidelines-pro-bounds-array-to-pointer-decay warns on every usage of assert
+# hicpp-no-array-decay warns on every usage of assert
+# cppcoreguidelines-macro-usage come on
+# readability-isolate-declaration dont care
+# boost-use-ranges i cant believe this is a real suggestion
+# readability-identifier-length dont care
+# modernize-use-designated-initializers why
+# readability-function-cognitive-complexity 
 Checks: "*,\
   -google-readability-todo,\
   -altera-*,\
@@ -11,6 +21,16 @@ Checks: "*,\
   -llvm-include-order,\
   -llvmlibc-*,\
   -modernize-use-nodiscard,\
+  -modernize-use-trailing-return-type,\
+  -readability-identifier-naming,\ 
+  -cppcoreguidelines-pro-bounds-array-to-pointer-decay,\ 
+  -hicpp-no-array-decay,\ 
+  -cppcoreguidelines-macro-usage,\ 
+  -readability-isolate-declaration,\ 
+  -boost-use-ranges,\ 
+  -readability-identifier-length,\ 
+  -modernize-use-designated-initializers,\ 
+  -readability-function-cognitive-complexity,\ 
   -misc-non-private-member-variables-in-classes"
 WarningsAsErrors: ''
 CheckOptions:

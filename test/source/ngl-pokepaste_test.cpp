@@ -6,42 +6,44 @@
 #include <iostream>
 #include <optional>
 #include <source_location>
+#include <span>
+#include <string>
+#include <vector>
 
 #include "ngl-pokepaste/pokepaste.hpp"
 
-static bool verbose = false;
+static bool verbose = false; // NOLINT
 
 #define CHECK_EQ(lhs, rhs)                                        \
-  if (lhs == rhs) {                                               \
+  if ((lhs) == (rhs)) {                                           \
     if (verbose) {                                                \
       std::cout << "Test success at line "                        \
                 << std::source_location::current().line() << "\n" \
-                << lhs << " == " << rhs << "\n";                  \
+                << (lhs) << " == " << (rhs) << "\n";              \
     }                                                             \
   } else {                                                        \
     std::cout << "Test failure at line "                          \
               << std::source_location::current().line() << "\n";  \
     if (verbose) {                                                \
-      std::cout << lhs << " != " << rhs << "\n";                  \
+      std::cout << (lhs) << " != " << (rhs) << "\n";              \
     }                                                             \
   }
 
-std::ostream &operator<<(std::ostream &os, [[maybe_unused]] const std::nullopt_t &data) {
-  os << "std::nullopt";
-  return os;
-}
-
+namespace {
 template <typename T>
 std::ostream &operator<<(std::ostream &os, const std::optional<T> &data) {
   os << (data.has_value() ? data.value() : "std::nullopt");
   return os;
 }
+} // namespace
 
+// NOLINTNEXTLINE(bugprone-exception-escape) doesnt really matter
 auto main(int argc, const char **argv) -> int {
-  if ((argc > 1) && (std::string{argv[1]} == "-v")) {
-    verbose = true;
-  } else {
-    verbose = false;
+  const auto args = std::span{argv, static_cast<std::size_t>(argc)};
+  for (const auto *arg : args) {
+    if (std::string{arg} == "-v") {
+      verbose = true;
+    }
   }
 
   // ngl::util
@@ -52,21 +54,21 @@ auto main(int argc, const char **argv) -> int {
     }
 
     {
-      const auto ends_value    = "ends with";
+      const auto ends_value    = std::string{"ends with"};
       const auto ends_result   = ngl::util::ends_with(ends_value, "with");
       const auto ends_expected = true;
       assert((ends_result == ends_expected));
     }
 
     {
-      const auto contains_value    = "contains";
+      const auto contains_value    = std::string{"contains"};
       const auto contains_result   = ngl::util::contains(contains_value, "ta");
       const auto contains_expected = true;
       assert((contains_result == contains_expected));
     }
 
     {
-      const auto contains_value    = "contains";
+      const auto contains_value    = std::string{"contains"};
       const auto contains_result   = ngl::util::contains(contains_value, "z");
       const auto contains_expected = false;
       assert((contains_result == contains_expected));
@@ -251,7 +253,7 @@ auto main(int argc, const char **argv) -> int {
           "Level:" + std::to_string(level_value)
         );
         assert(false);
-      } catch ([[maybe_unused]] const std::runtime_error &e) {
+      } catch ([[maybe_unused]] const std::runtime_error &e) { // NOLINT
       }
     }
 
@@ -287,7 +289,7 @@ auto main(int argc, const char **argv) -> int {
       try {
         (void)ngl::pokepaste::detail::decode_shiny_line("Shiny:" + shiny_value);
         assert(false);
-      } catch ([[maybe_unused]] const std::runtime_error &e) {
+      } catch ([[maybe_unused]] const std::runtime_error &e) { // NOLINT
       }
     }
 
@@ -337,7 +339,7 @@ auto main(int argc, const char **argv) -> int {
           "Gigantamax:" + gmax_value
         );
         assert(false);
-      } catch ([[maybe_unused]] const std::runtime_error &e) {
+      } catch ([[maybe_unused]] const std::runtime_error &e) { // NOLINT
       }
     }
 
@@ -380,36 +382,36 @@ auto main(int argc, const char **argv) -> int {
     {
       const auto ev_value = std::string{"1 Sp "};
       try {
-        const auto ev_result = ngl::pokepaste::detail::decode_evs_line("EVs:" + ev_value);
+        (void)ngl::pokepaste::detail::decode_evs_line("EVs:" + ev_value);
         assert(false);
-      } catch ([[maybe_unused]] const std::runtime_error &e) {
+      } catch ([[maybe_unused]] const std::runtime_error &e) { // NOLINT
       }
     }
 
     {
       const auto ev_value = std::string{"1 HP / 1 HP / 1 HP / 1 HP / 1 HP / 1 HP / 1 HP"};
       try {
-        const auto ev_result = ngl::pokepaste::detail::decode_evs_line("EVs:" + ev_value);
+        (void)ngl::pokepaste::detail::decode_evs_line("EVs:" + ev_value);
         assert(false);
-      } catch ([[maybe_unused]] const std::runtime_error &e) {
+      } catch ([[maybe_unused]] const std::runtime_error &e) { // NOLINT
       }
     }
 
     {
       const auto ev_value = std::string{"1 HP / 1 HP "};
       try {
-        const auto ev_result = ngl::pokepaste::detail::decode_evs_line("EVs:" + ev_value);
+        (void)ngl::pokepaste::detail::decode_evs_line("EVs:" + ev_value);
         assert(false);
-      } catch ([[maybe_unused]] const std::runtime_error &e) {
+      } catch ([[maybe_unused]] const std::runtime_error &e) { // NOLINT
       }
     }
 
     {
       const auto ev_value = std::string{"1 HP / -1 Atk "};
       try {
-        const auto ev_result = ngl::pokepaste::detail::decode_evs_line("EVs:" + ev_value);
+        (void)ngl::pokepaste::detail::decode_evs_line("EVs:" + ev_value);
         assert(false);
-      } catch ([[maybe_unused]] const std::runtime_error &e) {
+      } catch ([[maybe_unused]] const std::runtime_error &e) { // NOLINT
       }
     }
 
@@ -452,36 +454,36 @@ auto main(int argc, const char **argv) -> int {
     {
       const auto iv_value = std::string{"1 Sp "};
       try {
-        const auto iv_result = ngl::pokepaste::detail::decode_ivs_line("IVs:" + iv_value);
+        (void)ngl::pokepaste::detail::decode_ivs_line("IVs:" + iv_value);
         assert(false);
-      } catch ([[maybe_unused]] const std::runtime_error &e) {
+      } catch ([[maybe_unused]] const std::runtime_error &e) { // NOLINT
       }
     }
 
     {
       const auto iv_value = std::string{"1 HP / 1 HP / 1 HP / 1 HP / 1 HP / 1 HP / 1 HP"};
       try {
-        const auto iv_result = ngl::pokepaste::detail::decode_ivs_line("IVs:" + iv_value);
+        (void)ngl::pokepaste::detail::decode_ivs_line("IVs:" + iv_value);
         assert(false);
-      } catch ([[maybe_unused]] const std::runtime_error &e) {
+      } catch ([[maybe_unused]] const std::runtime_error &e) { // NOLINT
       }
     }
 
     {
       const auto iv_value = std::string{"1 HP / 1 HP "};
       try {
-        const auto iv_result = ngl::pokepaste::detail::decode_ivs_line("IVs:" + iv_value);
+        (void)ngl::pokepaste::detail::decode_ivs_line("IVs:" + iv_value);
         assert(false);
-      } catch ([[maybe_unused]] const std::runtime_error &e) {
+      } catch ([[maybe_unused]] const std::runtime_error &e) { // NOLINT
       }
     }
 
     {
       const auto iv_value = std::string{"1 HP / -1 Atk "};
       try {
-        const auto iv_result = ngl::pokepaste::detail::decode_ivs_line("IVs:" + iv_value);
+        (void)ngl::pokepaste::detail::decode_ivs_line("IVs:" + iv_value);
         assert(false);
-      } catch ([[maybe_unused]] const std::runtime_error &e) {
+      } catch ([[maybe_unused]] const std::runtime_error &e) { // NOLINT
       }
     }
 
@@ -499,11 +501,10 @@ auto main(int argc, const char **argv) -> int {
     }
 
     {
-      const auto move_value = std::string{""};
       try {
-        const auto iv_result = ngl::pokepaste::detail::decode_move_line("-" + move_value);
+        (void)ngl::pokepaste::detail::decode_move_line("-");
         assert(false);
-      } catch ([[maybe_unused]] const std::runtime_error &e) {
+      } catch ([[maybe_unused]] const std::runtime_error &e) { // NOLINT
       }
     }
   }
@@ -511,9 +512,10 @@ auto main(int argc, const char **argv) -> int {
   // ngl::pokepaste
   {
     {
-      const auto pokemon_value =
+      const auto pokemon_value = std::string{
         "Species\n"
-        "Ability: Ability\n";
+        "Ability: Ability\n"
+      };
 
       const auto pokemon_result   = ngl::pokepaste::decode_pokemon(pokemon_value);
       const auto pokemon_expected = ngl::pokepaste::Pokemon{
@@ -537,7 +539,7 @@ auto main(int argc, const char **argv) -> int {
     }
 
     {
-      const auto pokemon_value =
+      const auto pokemon_value = std::string{
         "Nickname (Species) (M) @ Item\n"
         "Ability: Ability\n"
         "Level: 50\n"
@@ -552,7 +554,8 @@ auto main(int argc, const char **argv) -> int {
         "- Attack 1\n"
         "- Attack 2\n"
         "- Attack 3\n"
-        "- Attack 4\n";
+        "- Attack 4\n"
+      };
 
       const auto pokemon_result   = ngl::pokepaste::decode_pokemon(pokemon_value);
       const auto pokemon_expected = ngl::pokepaste::Pokemon{
@@ -581,18 +584,17 @@ auto main(int argc, const char **argv) -> int {
     }
 
     {
-      const auto pokemon_value =
-        "Species\n";
+      const auto pokemon_value = std::string{"Species\n"};
 
       try {
         (void)ngl::pokepaste::decode_pokemon(pokemon_value);
         assert(false);
-      } catch ([[maybe_unused]] const std::runtime_error &e) {
+      } catch ([[maybe_unused]] const std::runtime_error &e) { // NOLINT
       }
     }
 
     {
-      const auto pokemon_value =
+      const auto pokemon_value = std::string{
         "Nickname (Species) (M) @ Item\n"
         "Level: 50\n"
         "Ability: Ability\n"
@@ -607,7 +609,8 @@ auto main(int argc, const char **argv) -> int {
         "- Attack 2\n"
         "Dynamax Level: 4\n"
         "IVs: 1 HP / 2 Atk / 3 Def / 4 SpA / 5 SpD / 6 Spe\n"
-        "- Attack 4\n";
+        "- Attack 4\n"
+      };
 
       const auto pokemon_result   = ngl::pokepaste::decode_pokemon(pokemon_value);
       const auto pokemon_expected = ngl::pokepaste::Pokemon{
@@ -636,7 +639,7 @@ auto main(int argc, const char **argv) -> int {
     }
 
     {
-      const auto pokemon_value =
+      const auto pokemon_value = std::string{
         "Nickname (Species) (M) @ Item\n"
         "Level: 50\n"
         "Shiny: Yes\n"
@@ -650,30 +653,32 @@ auto main(int argc, const char **argv) -> int {
         "- Attack 1\n"
         "- Attack 2\n"
         "- Attack 3\n"
-        "- Attack 4\n";
+        "- Attack 4\n"
+      };
 
       try {
         (void)ngl::pokepaste::decode_pokemon(pokemon_value);
         assert(false);
-      } catch ([[maybe_unused]] const std::runtime_error &e) {
+      } catch ([[maybe_unused]] const std::runtime_error &e) { // NOLINT
       }
     }
 
     {
-      const auto pokemon_value =
+      const auto pokemon_value = std::string{
         "Nickname (Species) (M) @ Item\n"
         "Ability: Ability\n"
-        "Ability: Ability\n";
+        "Ability: Ability\n"
+      };
 
       try {
         (void)ngl::pokepaste::decode_pokemon(pokemon_value);
         assert(false);
-      } catch ([[maybe_unused]] const std::runtime_error &e) {
+      } catch ([[maybe_unused]] const std::runtime_error &e) { // NOLINT
       }
     }
 
     {
-      const auto paste_value =
+      const auto paste_value = std::string{
         "Nickname (Species) (M) @ Item\n"
         "Ability: Ability\n"
         "Level: 50\n"
@@ -704,7 +709,8 @@ auto main(int argc, const char **argv) -> int {
         "- Attack 1\n"
         "- Attack 2\n"
         "- Attack 3\n"
-        "- Attack 4\n";
+        "- Attack 4\n"
+      };
 
       const auto paste_result   = ngl::pokepaste::decode_pokepaste(paste_value);
       const auto paste_expected = ngl::pokepaste::PokePaste{
@@ -766,7 +772,7 @@ auto main(int argc, const char **argv) -> int {
     using recursive_directory_iterator = std::filesystem::recursive_directory_iterator;
     for (const auto &paste_file : recursive_directory_iterator("resources")) {
       std::ifstream fs;
-      fs.open(paste_file);
+      fs.open(paste_file.path());
       std::string content, temp;
       while (std::getline(fs, temp)) {
         content.append(ngl::util::trim(temp));
