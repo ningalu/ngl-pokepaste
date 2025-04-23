@@ -5,9 +5,9 @@ include(cmake/prelude.cmake)
 project(
     ngl-pokepaste
     VERSION 0.1.0
-    DESCRIPTION "Short description"
-    HOMEPAGE_URL "https://example.com/"
-    LANGUAGES NONE
+    DESCRIPTION "C++ PokePaste Parser"
+    HOMEPAGE_URL "https://github.com/ningalu/ngl-pokepaste"
+    LANGUAGES CXX
 )
 
 include(cmake/project-is-top-level.cmake)
@@ -25,8 +25,7 @@ set_property(
 
 target_include_directories(
     ngl-pokepaste_ngl-pokepaste ${warning_guard}
-    INTERFACE
-    "\$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>"
+    INTERFACE "\$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>"
 )
 
 target_compile_features(ngl-pokepaste_ngl-pokepaste INTERFACE cxx_std_20)
