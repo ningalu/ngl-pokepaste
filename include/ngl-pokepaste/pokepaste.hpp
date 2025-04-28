@@ -693,7 +693,14 @@ struct SpeciesLineInfo {
 [[nodiscard]] inline PokePaste decode_pokepaste(const std::string &paste) {
   PokePaste out;
   const auto fixed_newlines = util::join(util::split(paste, "\r\n"), "\n");
-  const auto team           = util::split(fixed_newlines, "\n\n");
+  const auto split_newlines = util::split(fixed_newlines, "\n\n");
+  std::vector<std::string> team;
+  for (const auto &pokemon : split_newlines) {
+    const auto trimmed = util::trim(pokemon);
+    if (!trimmed.empty()) {
+      team.push_back(trimmed);
+    }
+  }
   for (const auto &pokemon : team) {
     out.push_back(decode_pokemon(util::trim(pokemon)));
   }
